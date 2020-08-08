@@ -2,48 +2,66 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-impath = "./dataset/sim/sim_1.jpg"
+def show(rows, cols, img_list):
+    pass
 
-image = cv2.imread(impath)
+impath = "./dataset/mod/mod_1.jpg"
 
-# Grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+img = cv2.imread(impath)
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+# TODO: Try Blur
+# TODO: Create Plots
 
 
-th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 
-plt.plot(th)
+## HSV Masking
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+lower = np.array([15, 70, 245], dtype=np.uint8)
+upper = np.array([25, 80, 255], dtype=np.uint8)
 
-# th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+mask = cv2.inRange(hsv, lower, upper)
+masked = cv2.bitwise_and(img, img, mask=mask)
 
-# Find Canny edges
-edged = cv2.Canny(th, 30, 200)
 
-# Finding Contours
-# Use a copy of the image e.g. edged.copy()
-# since findContours alters the image
-contours, hierarchy = cv2.findContours(edged,
-                                       cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
 
-# plt.imshow(edged)
-# cv2.waitKey(0)
+## Morphological transformations on masked image
+kernel = np.ones((3, 3), dtype=np.uint8)
 
-print(hierarchy)
-print(f"Number of Contours found = {len(contours)}")
+# tf = cv.erode(mask, kernel, iterations=1)
+# tf = cv.dilate(mask, kernel, iterations=1)
+tf = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
 
-# Draw all contours
-# -1 signifies drawing all contours
 
-# get largest contour
-# contour = contours[1]
+
+## Thresholding
+tf_thmean = cv2.adaptiveThreshold(tf, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 5)
+# tf_thgaus = cv2.adaptiveThreshold(tf, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 5)
+
+
+
+## Canny Edge Detection
+# TODO: Do canny edge detection
+
+# contours, hierarchy = cv2.findContours(tf, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+contours, hierarchy = cv2.findContours(tf_thmean, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+
+
 contour = max(contours, key=cv2.contourArea)
-cv2.drawContours(image, contours, -1, (0, 255, 0), 3)
-# cv2.drawContours(image, [contour], 0, (0, 255, 0), 3)
+boundingRect = cv2.boundingRect(contour)
 
-plt.imshow(image)
+# _ = cv.drawContours(img, contours, -1, (0, 255, 0), 3)
+
+cv2.rectangle(rgb, boundingRect, color=(255, 0, 255), thickness=4)
+
+cv2.circle(
+    rgb, 
+    center=(boundingRect[0] + boundingRect[2] // 2, 450), 
+    radius=5, 
+    color=(255, 0, 0), 
+    thickness=5
+)
+
+plt.imshow(rgb)
 plt.show()
-
-# cv2.imshow('Contours', image)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
